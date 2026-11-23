@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Control de Flota - Checklist Vehicular y KPIs</title>
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=dLiATyOejPceh-S716g5GCgxQvYX43Hnho_62L1JW3CZpu-BGIiKa2FeeGTx6acFf5i6w-GG10Vx4N2ZsllgQMUT3Dv0oftCu05QXljInNecERV__tie6QCWf2dC46EkQylil1MZFF70KxNMXZvam4iwRRpHlCRD6EkJAsFvy2S0spLrsRqPasdw67qPtJBEhOpQXP7c-bmywTbOY6eYbbZyxjEWQVCUTfAc5gZZLq3vlpIf9lF6PDOdDKGYq23N1s0q-XxvTgQMj8nxskmsAzxH8Wn_8lwlsTqZaxnutTikZjMtwQZYCSruDRQTMwrY" charset="UTF-8"></script><style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #eff6ff;
+      --accent: #2563eb;
+      --ok: #16a34a;
+      --ok-bg: #dcfce7;
+      --warn: #d97706;
+      --warn-bg: #fef3c7;
+      --crit: #dc2626;
+      --crit-bg: #fee2e2;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 84px; }
+    header {
+      background: linear-gradient(135deg, #0f172a, var(--primary));
+      color: #fff; padding: 14px 16px; position: sticky; top: 0; z-index: 50;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    }
+    header h1 { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.2; }
+    header p { margin: 2px 0 0; font-size: 11px; color: #cbd5e1; }
+    .status-pill {
+      font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 999px;
+      background: rgba(22, 163, 74, 0.25); color: #86efac; border: 1px solid rgba(134, 239, 172, 0.4);
+      white-space: nowrap;
+    }
+    .status-pill.offline { background: rgba(220, 38, 38, 0.25); color: #fca5a5; border-color: rgba(252, 165, 165, 0.4); }
+    .container { max-width: 720px; margin: 0 auto; padding: 14px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .card {
+      background: var(--card); border-radius: var(--radius); padding: 16px;
+      margin-bottom: 14px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 700; color: var(--primary);
+      margin: 0 0 12px; display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;
+    }
+    .badge-id {
+      background: var(--primary); color: #fff; padding: 3px 10px;
+      border-radius: 999px; font-size: 12px; font-weight: 700;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
+    label { display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px; background: #fff; color: var(--text);
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+    input[readonly] { background: #f8fafc; color: #475569; font-weight: 600; }
+    .unit-info {
+      margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 12px;
+      background: var(--primary-light); color: #1e40af; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+    }
+    .sys-row {
+      display: flex; flex-direction: column; gap: 6px; padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .sys-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .sys-name { font-size: 13px; font-weight: 600; }
+    .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .opt-btn {
+      padding: 9px 6px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: #fff; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center;
+      transition: all 0.15s;
+    }
+    .opt-btn.selected[data-val="OK"] { background: var(--ok-bg); border-color: var(--ok); color: #15803d; }
+    .opt-btn.selected[data-val="Revisión"] { background: var(--warn-bg); border-color: var(--warn); color: #b45309; }
+    .opt-btn.selected[data-val="Falla"] { background: var(--crit-bg); border-color: var(--crit); color: #b91c1c; }
+    .zones-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .zone-chip {
+      font-size: 11px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border);
+      background: #f8fafc; cursor: pointer; font-weight: 600;
+    }
+    .zone-chip.active { background: #fee2e2; border-color: var(--crit); color: #b91c1c; }
+    canvas {
+      width: 100%; border: 1.5px dashed #94a3b8; border-radius: 10px;
+      background: #fff; touch-action: none; display: block;
+    }
+    .canvas-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 8px; }
+    .btn-sm {
+      padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: #f8fafc; cursor: pointer; font-weight: 600; color: #334155;
+    }
+    .btn-primary {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: var(--primary); color: #fff; font-size: 15px; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(30,58,138,0.25);
+    }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-wa {
+      width: 100%; padding: 12px; border: none; border-radius: 10px;
+      background: #16a34a; color: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer; margin-top: 8px; display: none;
+    }
+    .alert-box {
+      padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; display: none;
+    }
+    .alert-box.ok { background: var(--ok-bg); color: #166534; border: 1px solid #86efac; display: block; }
+    .alert-box.err { background: var(--crit-bg); color: #991b1b; border: 1px solid #fca5a5; display: block; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    .kpi-card { background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .kpi-card span { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+    .kpi-card strong { display: block; font-size: 20px; margin-top: 4px; color: var(--primary); }
+    .hist-item {
+      padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #fff;
+    }
+    .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .tag.OK { background: var(--ok-bg); color: #15803d; }
+    .tag.CRÍTICA { background: var(--crit-bg); color: #b91c1c; }
+    .tag.OBSERVACIÓN { background: var(--warn-bg); color: #b45309; }
+    nav.bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+      border-top: 1px solid #e2e8f0; display: grid; grid-template-columns: repeat(4, 1fr);
+      z-index: 60; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    nav.bottom-nav button {
+      border: none; background: none; padding: 10px 4px; font-size: 11px;
+      font-weight: 600; color: var(--muted); cursor: pointer; display: flex;
+      flex-direction: column; align-items: center; gap: 3px;
+    }
+    nav.bottom-nav button.active { color: var(--primary); background: var(--primary-light); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Control de Flota &amp; Checklist</h1>
+    <p>Inspección Pre-Operacional • Acceso Libre</p>
+  </div>
+  <div id="connBadge" class="status-pill">● Enlazado Sheets</div>
+</header>
+
+<div class="container">
+
+  <!-- PESTAÑA 1: NUEVO CHECKLIST -->
+  <div id="tab-check" class="tab-pane active">
+    <form id="checkForm">
+      <div class="card">
+        <div class="card-title">
+          <span>1. Datos del Turno y Vehículo</span>
+          <span class="badge-id" id="badgeCheckId">Check #4</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>N° Check (Correlativo)</label>
+            <input type="number" id="idCheck" readonly />
+          </div>
+          <div>
+            <label>Tipo de Movimiento *</label>
+            <select id="tipoMovimiento" required>
+              <option value="Salida">Salida a Ruta</option>
+              <option value="Retorno">Retorno a Base</option>
+              <option value="Relevo">Relevo de Turno</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>Vehículo / Placa *</label>
+          <select id="placaSelect" required></select>
+          <div id="unitBanner" class="unit-info"></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:10px;">
+          <div>
+            <label>Nombre Completo del Conductor *</label>
+            <input type="text" id="conductor" placeholder="Ej: Juan Pérez" required />
+          </div>
+          <div>
+            <label>Cédula del Conductor (10 dígitos) *</label>
+            <input type="text" id="cedula" inputmode="numeric" maxlength="10" placeholder="Ej: 0912345678" required />
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>Kilometraje Actual (Odómetro) *</label>
+          <input type="number" id="kilometraje" placeholder="Ej: 274800" required />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>2. Revisión Técnico-Mecánica</span></div>
+
+        <div class="sys-row">
+          <div class="sys-name">Frenos, Llantas y Dirección</div>
+          <div class="btn-group" data-field="frenos">
+            <button type="button" class="opt-btn selected" data-val="OK">OK</button>
+            <button type="button" class="opt-btn" data-val="Revisión">Revisión</button>
+            <button type="button" class="opt-btn" data-val="Falla">Falla</button>
+          </div>
+        </div>
+
+        <div class="sys-row">
+          <div class="sys-name">Luces, Batería y Niveles de Fluidos</div>
+          <div class="btn-group" data-field="luces">
+            <button type="button" class="opt-btn selected" data-val="OK">OK</button>
+            <button type="button" class="opt-btn" data-val="Revisión">Revisión</button>
+            <button type="button" class="opt-btn" data-val="Falla">Falla</button>
+          </div>
+        </div>
+
+        <div class="sys-row">
+          <div class="sys-name">Carrocería, Espejos y Kit Seguridad</div>
+          <div class="btn-group" data-field="carroceria">
+            <button type="button" class="opt-btn selected" data-val="OK">OK</button>
+            <button type="button" class="opt-btn" data-val="Revisión">Revisión</button>
+            <button type="button" class="opt-btn" data-val="Falla">Falla</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>3. Croquis de Daños y Novedades</span></div>
+        <label>Zonas afectadas (toca para marcar):</label>
+        <div class="zones-wrap" id="zonesWrap">
+          <button type="button" class="zone-chip active" data-zone="Sin novedad">Sin novedad</button>
+          <button type="button" class="zone-chip" data-zone="Frontal">Frontal</button>
+          <button type="button" class="zone-chip" data-zone="Lateral Izq.">Lateral Izq.</button>
+          <button type="button" class="zone-chip" data-zone="Lateral Der.">Lateral Der.</button>
+          <button type="button" class="zone-chip" data-zone="Posterior">Posterior</button>
+          <button type="button" class="zone-chip" data-zone="Techo/Carga">Techo/Carga</button>
+          <button type="button" class="zone-chip" data-zone="Parabrisas/Luces">Parabrisas/Luces</button>
+        </div>
+
+        <label>Marca sobre el esquema si hay golpes o rayones:</label>
+        <canvas id="croquisCanvas" width="600" height="220"></canvas>
+        <div class="canvas-actions">
+          <span style="font-size:11px;color:#64748b;">Dibuja con el dedo en rojo</span>
+          <button type="button" class="btn-sm" id="clearCroquis">Limpiar croquis</button>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>Detalle de Novedad / Observaciones</label>
+          <textarea id="detalleNovedad" rows="2" placeholder="Describe cualquier golpe, fuga, testigo encendido o escribe 'Sin novedad'"></textarea>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>Foto de Evidencia (Opcional)</label>
+          <input type="file" id="fotoInput" accept="image/*" capture="environment" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>4. Firma de Conformidad del Conductor *</span></div>
+        <canvas id="firmaCanvas" width="600" height="150"></canvas>
+        <div class="canvas-actions">
+          <span style="font-size:11px;color:#64748b;">Firma dentro del recuadro</span>
+          <button type="button" class="btn-sm" id="clearFirma">Borrar firma</button>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn-primary">Guardar y Enviar a Google Sheets</button>
+      <button type="button" id="waBtn" class="btn-wa">Enviar Reporte por WhatsApp</button>
+      <div id="feedbackBox" class="alert-box"></div>
+    </form>
+  </div>
+
+  <!-- PESTAÑA 2: HISTORIAL -->
+  <div id="tab-hist" class="tab-pane">
+    <div class="card">
+      <div class="card-title">
+        <span>Historial de Inspecciones</span>
+        <button type="button" class="btn-sm" id="exportCsvBtn">Descargar CSV</button>
+      </div>
+      <div style="margin-bottom:10px;">
+        <input type="text" id="searchHist" placeholder="Filtrar por placa, conductor o estado..." />
+      </div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 3: KPIS Y FLOTA -->
+  <div id="tab-kpi" class="tab-pane">
+    <div class="kpi-grid">
+      <div class="kpi-card"><span>Total Inspecciones</span><strong id="kpiTotal">0</strong></div>
+      <div class="kpi-card"><span>Alertas Críticas</span><strong id="kpiCrit" style="color:#dc2626;">0</strong></div>
+      <div class="kpi-card"><span>Unidades Flota</span><strong id="kpiUnits">10</strong></div>
+      <div class="kpi-card"><span>Costo Daños Acum.</span><strong style="color:#d97706;">$505.50</strong></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>Estado de Mantenimiento por Unidad</span></div>
+      <div id="fleetStatusList"></div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 4: AJUSTES Y CONEXIÓN -->
+  <div id="tab-cfg" class="tab-pane">
+    <div class="card">
+      <div class="card-title"><span>Conexión en Vivo con Google Sheets</span></div>
+      <label>URL Web App (Apps Script /exec)</label>
+      <input type="url" id="scriptUrlInput" />
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button type="button" class="btn-sm" id="saveUrlBtn">Guardar URL</button>
+        <button type="button" class="btn-sm" id="testConnBtn">Probar Conexión</button>
+      </div>
+      <div id="connTestResult" style="font-size:12px;margin-top:8px;color:#334155;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>Correlativo y Nueva Unidad</span></div>
+      <label>Siguiente N° Check</label>
+      <div style="display:flex;gap:8px;">
+        <input type="number" id="nextCheckInput" />
+        <button type="button" class="btn-sm" id="saveNextBtn">Actualizar</button>
+      </div>
+
+      <div style="margin-top:14px;border-top:1px solid #f1f5f9;padding-top:12px;">
+        <label>Agregar Nueva Placa a la Flota</label>
+        <div class="grid-2">
+          <input type="text" id="newPlaca" placeholder="Placa (Ej: GTY-1234)" />
+          <input type="text" id="newModelo" placeholder="Modelo / Tipo" />
+        </div>
+        <button type="button" class="btn-sm" id="addUnitBtn" style="margin-top:8px;">+ Agregar Vehículo</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav">
+  <button type="button" class="active" data-tab="tab-check">📋<span>Checklist</span></button>
+  <button type="button" data-tab="tab-hist">🗂️<span>Historial</span></button>
+  <button type="button" data-tab="tab-kpi">📊<span>Flota/KPIs</span></button>
+  <button type="button" data-tab="tab-cfg">⚙️<span>Ajustes</span></button>
+</nav>
+
+<script>
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJgeQgMlB4C-hQu04bQXAnd9Zplu9kSZZ-L90dAESSbKI2VDjsIg2Sk3hNsxiFOyo89g/exec";
+
+const INITIAL_FLEET = [
+  { placa: "GSL-9400", modelo: "CHEVROLET NLR (PEQUEÑO)", km: 274715, prox: 274000, estadoMant: "Vencido/Taller" },
+  { placa: "GSK-2873", modelo: "CHEVROLET GRANDE", km: 336247, prox: 339000, estadoMant: "OK" },
+  { placa: "GSC-1236", modelo: "HYUNDAI PLATAFORMA", km: 264087, prox: 266101, estadoMant: "OK" },
+  { placa: "GSI-5959", modelo: "OMNIBUS", km: 401032, prox: 403000, estadoMant: "OK" },
+  { placa: "GSH-2309", modelo: "CAMION GRUA AZUL", km: 153291, prox: 156640, estadoMant: "OK" },
+  { placa: "GTS-4900", modelo: "DMAX VENTAS", km: 48994, prox: 25000, estadoMant: "Vencido/Taller" },
+  { placa: "GTT-3235", modelo: "DMAX ROJA PROYECTOS", km: 66084, prox: 67412, estadoMant: "OK" },
+  { placa: "GTL-9373", modelo: "DMAX VERDE PROYECTOS", km: 157826, prox: 162665, estadoMant: "OK" },
+  { placa: "GTL-7791", modelo: "DMAX NEGRA PROYECTOS", km: 120249, prox: 120354, estadoMant: "Próximo a Mantenimiento" },
+  { placa: "GTP-9591", modelo: "DMAX BLANCA COMPRAS", km: 82565, prox: 83000, estadoMant: "Próximo a Mantenimiento" }
+];
+
+const INITIAL_CHECKS = [
+  { id_check: 1, fecha_hora: "2025-02-24 07:30:00", tipo_movimiento: "Salida", placa: "GSL-9400", conductor: "Carlos Mendoza", cedula_conductor: "0912345678", kilometraje: "42500 km", frenos_llantas: "OK", luces_fluidos: "OK", carroceria_seguridad: "OK", croquis_danos: "Sin novedad", detalle_novedad: "Inspección pre-operacional conforme.", foto_evidencia: "check_001.jpg", firma_conductor: "Carlos Mendoza", estado_alerta: "OK" },
+  { id_check: 2, fecha_hora: "2025-02-24 08:15:00", tipo_movimiento: "Salida", placa: "GSK-2873", conductor: "Luis Morales", cedula_conductor: "0923456789", kilometraje: "58200 km", frenos_llantas: "Falla", luces_fluidos: "OK", carroceria_seguridad: "Revisión", croquis_danos: "Lateral Der.", detalle_novedad: "Fuga leve de líquido de frenos y raspón lateral.", foto_evidencia: "check_002.jpg", firma_conductor: "Luis Morales", estado_alerta: "CRÍTICA" },
+  { id_check: 3, fecha_hora: "2026-11-23 11:02:30", tipo_movimiento: "Salida", placa: "GTT-3235", conductor: "Víctor delgado", cedula_conductor: "0922522834", kilometraje: "66084 km", frenos_llantas: "OK", luces_fluidos: "OK", carroceria_seguridad: "Falla", croquis_danos: "Frontal", detalle_novedad: "Golpe frontal", foto_evidencia: "3.Foto_Evidencia.jpg", firma_conductor: "Víctor delgado", estado_alerta: "CRÍTICA" }
+];
+
+let fleet = JSON.parse(localStorage.getItem("flota_units_v2")) || INITIAL_FLEET;
+let checks = JSON.parse(localStorage.getItem("flota_checks_v2")) || INITIAL_CHECKS;
+let nextId = parseInt(localStorage.getItem("flota_next_id_v2") || "4", 10);
+let scriptUrl = localStorage.getItem("flota_script_url_v2") || DEFAULT_SCRIPT_URL;
+let sysValues = { frenos: "OK", luces: "OK", carroceria: "OK" };
+let firmaHasStroke = false;
+let lastWaText = "";
+
+function saveState() {
+  localStorage.setItem("flota_units_v2", JSON.stringify(fleet));
+  localStorage.setItem("flota_checks_v2", JSON.stringify(checks));
+  localStorage.setItem("flota_next_id_v2", String(nextId));
+  localStorage.setItem("flota_script_url_v2", scriptUrl);
+}
+
+function renderFleetSelect() {
+  const sel = document.getElementById("placaSelect");
+  sel.innerHTML = fleet.map(u => `<option value="${u.placa}">${u.placa} — ${u.modelo}</option>`).join("");
+  updateUnitBanner();
+}
+
+function updateUnitBanner() {
+  const placa = document.getElementById("placaSelect").value;
+  const u = fleet.find(x => x.placa === placa);
+  if (!u) return;
+  const rest = u.prox - u.km;
+  document.getElementById("unitBanner").innerHTML = `
+    <span><strong>${u.modelo}</strong></span>
+    <span>Km ref: ${u.km.toLocaleString()} km | Mant: <strong>${u.estadoMant}</strong> (${rest >= 0 ? rest + ' km rest.' : Math.abs(rest) + ' km excedidos'})</span>
+  `;
+  document.getElementById("kilometraje").placeholder = `Último: ${u.km}`;
+}
+
+function updateIdUI() {
+  document.getElementById("idCheck").value = nextId;
+  document.getElementById("badgeCheckId").textContent = `Check #${nextId}`;
+  document.getElementById("nextCheckInput").value = nextId;
+}
+
+// Botones de estado
+document.querySelectorAll(".btn-group").forEach(grp => {
+  const field = grp.dataset.field;
+  grp.querySelectorAll(".opt-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      grp.querySelectorAll(".opt-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      sysValues[field] = btn.dataset.val;
+    });
+  });
+});
+
+// Chips de zonas
+document.querySelectorAll(".zone-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const z = chip.dataset.zone;
+    if (z === "Sin novedad") {
+      document.querySelectorAll(".zone-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+    } else {
+      document.querySelector('.zone-chip[data-zone="Sin novedad"]').classList.remove("active");
+      chip.classList.toggle("active");
+      if (!document.querySelector(".zone-chip.active")) {
+        document.querySelector('.zone-chip[data-zone="Sin novedad"]').classList.add("active");
+      }
+    }
+  });
+});
+
+// Canvas Croquis
+const croquisCanvas = document.getElementById("croquisCanvas");
+const cCtx = croquisCanvas.getContext("2d");
+function drawTruckOutline() {
+  cCtx.clearRect(0, 0, croquisCanvas.width, croquisCanvas.height);
+  cCtx.strokeStyle = "#64748b";
+  cCtx.lineWidth = 2;
+  cCtx.strokeRect(70, 45, 330, 120); // Cajón
+  cCtx.strokeRect(405, 60, 115, 105); // Cabina
+  cCtx.beginPath(); cCtx.arc(140, 175, 22, 0, Math.PI*2); cCtx.stroke();
+  cCtx.beginPath(); cCtx.arc(330, 175, 22, 0, Math.PI*2); cCtx.stroke();
+  cCtx.beginPath(); cCtx.arc(465, 175, 22, 0, Math.PI*2); cCtx.stroke();
+  cCtx.fillStyle = "#94a3b8"; cCtx.font = "13px sans-serif";
+  cCtx.fillText("POSTERIOR", 85, 36);
+  cCtx.fillText("LATERAL / CARGA", 190, 110);
+  cCtx.fillText("CABINA / FRONTAL", 410, 50);
+}
+drawTruckOutline();
+
+function setupDraw(canvas, ctx, color, lineWidth, onStroke) {
+  let drawing = false;
+  const getPos = e => {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return {
+      x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+      y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
+  const start = e => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); if (onStroke) onStroke(); e.preventDefault(); };
+  const move = e => { if (!drawing) return; const p = getPos(e); ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.lineCap = "round"; ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+  const end = () => { drawing = false; };
+  canvas.addEventListener("mousedown", start); canvas.addEventListener("mousemove", move); window.addEventListener("mouseup", end);
+  canvas.addEventListener("touchstart", start, { passive: false }); canvas.addEventListener("touchmove", move, { passive: false }); canvas.addEventListener("touchend", end);
+}
+setupDraw(croquisCanvas, cCtx, "#dc2626", 4, null);
+document.getElementById("clearCroquis").addEventListener("click", drawTruckOutline);
+
+// Canvas Firma
+const firmaCanvas = document.getElementById("firmaCanvas");
+const fCtx = firmaCanvas.getContext("2d");
+setupDraw(firmaCanvas, fCtx, "#0f172a", 3, () => { firmaHasStroke = true; });
+document.getElementById("clearFirma").addEventListener("click", () => {
+  fCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
+  firmaHasStroke = false;
+});
+
+function formatNow() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+// Envío del formulario
+document.getElementById("checkForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const conductor = document.getElementById("conductor").value.trim();
+  const cedula = document.getElementById("cedula").value.trim();
+  const kmVal = parseInt(document.getElementById("kilometraje").value, 10);
+
+  if (!/^\d{10}$/.test(cedula)) {
+    alert("Ingresa una cédula válida de 10 dígitos.");
+    return;
+  }
+  if (!firmaHasStroke) {
+    alert("Por favor pide al conductor que firme antes de guardar.");
+    return;
+  }
+
+  const zones = Array.from(document.querySelectorAll(".zone-chip.active")).map(c => c.dataset.zone).join(", ");
+  const detalle = document.getElementById("detalleNovedad").value.trim() || "Sin novedad";
+  const fotoFile = document.getElementById("fotoInput").files[0];
+
+  let estadoAlerta = "OK";
+  if (sysValues.frenos === "Falla" || sysValues.luces === "Falla" || sysValues.carroceria === "Falla") {
+    estadoAlerta = "CRÍTICA";
+  } else if (sysValues.frenos === "Revisión" || sysValues.luces === "Revisión" || sysValues.carroceria === "Revisión") {
+    estadoAlerta = "OBSERVACIÓN";
+  }
+
+  const payload = {
+    id_check: nextId,
+    fecha_hora: formatNow(),
+    tipo_movimiento: document.getElementById("tipoMovimiento").value,
+    placa: document.getElementById("placaSelect").value,
+    conductor: conductor,
+    cedula_conductor: cedula,
+    kilometraje: `${kmVal} km`,
+    frenos_llantas: sysValues.frenos,
+    luces_fluidos: sysValues.luces,
+    carroceria_seguridad: sysValues.carroceria,
+    croquis_danos: zones,
+    detalle_novedad: detalle,
+    foto_evidencia: fotoFile ? `Foto adjunta: ${fotoFile.name}` : "Sin foto adjunta",
+    firma_conductor: `Firmado digitalmente (${conductor})`,
+    estado_alerta: estadoAlerta
+  };
+
+  const btn = document.getElementById("submitBtn");
+  const fb = document.getElementById("feedbackBox");
+  btn.disabled = true;
+  btn.textContent = "Enviando a Google Sheets...";
+  fb.className = "alert-box";
+
+  try {
+    await fetch(scriptUrl, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+
+    checks.unshift(payload);
+    const uIdx = fleet.findIndex(u => u.placa === payload.placa);
+    if (uIdx >= 0 && kmVal > fleet[uIdx].km) fleet[uIdx].km = kmVal;
+    nextId += 1;
+    saveState();
+    updateIdUI();
+    updateUnitBanner();
+    renderHistory();
+    renderKPIs();
+
+    fb.className = "alert-box ok";
+    fb.innerHTML = `<strong>✅ Check #${payload.id_check} enviado a Google Sheets</strong><br>Placa: ${payload.placa} | Conductor: ${payload.conductor} | Estado: <strong>${payload.estado_alerta}</strong>`;
+
+    lastWaText = `*CHECKLIST VEHICULAR #${payload.id_check}*%0A• *Movimiento:* ${payload.tipo_movimiento}%0A• *Placa:* ${payload.placa}%0A• *Conductor:* ${payload.conductor} (CI: ${payload.cedula_conductor})%0A• *Km:* ${payload.kilometraje}%0A• *Frenos/Llantas:* ${payload.frenos_llantas}%0A• *Luces/Fluidos:* ${payload.luces_fluidos}%0A• *Carrocería:* ${payload.carroceria_seguridad}%0A• *Zonas:* ${payload.croquis_danos}%0A• *Detalle:* ${payload.detalle_novedad}%0A• *Estado:* ${payload.estado_alerta}`;
+    document.getElementById("waBtn").style.display = "block";
+
+    document.getElementById("conductor").value = "";
+    document.getElementById("cedula").value = "";
+    document.getElementById("kilometraje").value = "";
+    document.getElementById("detalleNovedad").value = "";
+    document.getElementById("fotoInput").value = "";
+    fCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
+    firmaHasStroke = false;
+    drawTruckOutline();
+  } catch (err) {
+    fb.className = "alert-box err";
+    fb.textContent = "Error al enviar. Verifica tu conexión a internet e intenta nuevamente.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Guardar y Enviar a Google Sheets";
+  }
+});
+
+document.getElementById("waBtn").addEventListener("click", () => {
+  window.open(`https://wa.me/?text=${lastWaText}`, "_blank");
+});
+
+function renderHistory() {
+  const q = (document.getElementById("searchHist").value || "").toLowerCase();
+  const filtered = checks.filter(c =>
+    String(c.id_check).includes(q) ||
+    c.placa.toLowerCase().includes(q) ||
+    c.conductor.toLowerCase().includes(q) ||
+    c.estado_alerta.toLowerCase().includes(q)
+  );
+  document.getElementById("histList").innerHTML = filtered.map(c => `
+    <div class="hist-item">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong>#${c.id_check} • ${c.placa} (${c.tipo_movimiento})</strong>
+        <span class="tag ${c.estado_alerta}">${c.estado_alerta}</span>
+      </div>
+      <div style="font-size:12px;color:#475569;margin-top:4px;">
+        ${c.conductor} (CI: ${c.cedula_conductor}) • ${c.kilometraje}<br>
+        <span style="color:#64748b;">${c.fecha_hora} — ${c.detalle_novedad}</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderKPIs() {
+  document.getElementById("kpiTotal").textContent = checks.length;
+  document.getElementById("kpiCrit").textContent = checks.filter(c => c.estado_alerta === "CRÍTICA").length;
+  document.getElementById("kpiUnits").textContent = fleet.length;
+  document.getElementById("fleetStatusList").innerHTML = fleet.map(u => {
+    const rest = u.prox - u.km;
+    const badge = rest < 0 ? "CRÍTICA" : (rest <= 500 ? "OBSERVACIÓN" : "OK");
+    return `
+      <div class="hist-item" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong>${u.placa}</strong> <span style="font-size:12px;color:#475569;">(${u.modelo})</span><br>
+          <span style="font-size:11px;color:#64748b;">Actual: ${u.km.toLocaleString()} km | Próx. Mant: ${u.prox.toLocaleString()} km</span>
+        </div>
+        <span class="tag ${badge}">${badge === "CRÍTICA" ? "Vencido" : (badge === "OBSERVACIÓN" ? "Próximo" : "OK")}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+document.getElementById("exportCsvBtn").addEventListener("click", () => {
+  const headers = ["ID_Check","Fecha_Hora","Tipo_Movimiento","Placa","Conductor","Cedula_Conductor","Kilometraje","Frenos_Llantas","Luces_Fluidos","Carroceria_Seguridad","Croquis_Danos","Detalle_Novedad","Foto_Evidencia","Firma_Conductor","Estado_Alerta"];
+  const rows = checks.map(c => [c.id_check,c.fecha_hora,c.tipo_movimiento,c.placa,c.conductor,c.cedula_conductor,c.kilometraje,c.frenos_llantas,c.luces_fluidos,c.carroceria_seguridad,c.croquis_danos,c.detalle_novedad,c.foto_evidencia,c.firma_conductor,c.estado_alerta].map(v => `"${String(v).replace(/"/g,'""')}"`).join(","));
+  const blob = new Blob([[headers.join(","), ...rows].join("\n")], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Checklists_Flota.csv";
+  a.click();
+});
+
+// Navegación
+document.querySelectorAll("nav.bottom-nav button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav.bottom-nav button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+document.getElementById("placaSelect").addEventListener("change", updateUnitBanner);
+document.getElementById("searchHist").addEventListener("input", renderHistory);
+document.getElementById("scriptUrlInput").value = scriptUrl;
+
+document.getElementById("saveUrlBtn").addEventListener("click", () => {
+  scriptUrl = document.getElementById("scriptUrlInput").value.trim();
+  saveState();
+  alert("URL guardada correctamente.");
+});
+
+document.getElementById("testConnBtn").addEventListener("click", async () => {
+  const out = document.getElementById("connTestResult");
+  out.textContent = "Probando conexión...";
+  try {
+    const res = await fetch(scriptUrl);
+    const json = await res.json();
+    out.textContent = `✅ Respuesta del servidor: ${json.status} — ${json.mensaje}`;
+  } catch (e) {
+    out.textContent = "⚠️ No se pudo leer respuesta directa (revisa que la URL termine en /exec).";
+  }
+});
+
+document.getElementById("saveNextBtn").addEventListener("click", () => {
+  const v = parseInt(document.getElementById("nextCheckInput").value, 10);
+  if (v > 0) { nextId = v; saveState(); updateIdUI(); alert("Correlativo actualizado."); }
+});
+
+document.getElementById("addUnitBtn").addEventListener("click", () => {
+  const p = document.getElementById("newPlaca").value.trim().toUpperCase();
+  const m = document.getElementById("newModelo").value.trim().toUpperCase();
+  if (!p || !m) return alert("Completa placa y modelo.");
+  fleet.push({ placa: p, modelo: m, km: 0, prox: 10000, estadoMant: "OK" });
+  saveState(); renderFleetSelect(); renderKPIs();
+  document.getElementById("newPlaca").value = "";
+  document.getElementById("newModelo").value = "";
+  alert(`Unidad ${p} agregada.`);
+});
+
+renderFleetSelect();
+updateIdUI();
+renderHistory();
+renderKPIs();
+</script>
+</body>
+</html>
